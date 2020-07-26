@@ -1,0 +1,6 @@
+{
+    "env": {
+        "DEBUG": "backend:*",
+        "PORT": 5000
+    }
+}
