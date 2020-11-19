@@ -1,3 +1,5 @@
+// file used just for refrence to the mongoose object structure
+
 // let Mongoose = {
 //     connections: [
 //       NativeConnection {

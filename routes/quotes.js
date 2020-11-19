@@ -10,7 +10,7 @@ const db = require('../db/mongoose')
 // Postman test 7/25/20 - working
 router.get('/', function (req, res, next) {
   let readObj = {
-    // usersCollection: req.app.locals.usersCollection,
+    usersCollection: req.app.locals.usersCollection,
     resource: req.baseUrl.slice(1) // need to add this to other routes and on users.js
   }
 
@@ -48,9 +48,7 @@ router.get('/:id', function (req, res, next) {
 // Postman test 7/25/20 - working
 router.post('/', async function (req, res, next) {
 console.log("req.app.locals.productssCollection",req.app.locals.productsCollection) //is undefind here
-console.log("products.js req.body:", req.body )
-  
-let newProduct = { ...req.body }
+  let newProduct = { ...req.body }
 
   console.log("products.js post:", newProduct )
 
