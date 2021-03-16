@@ -13,6 +13,7 @@ const indexRouter = require('./routes/index')
 const usersRouter = require('./routes/users')
 const productsRouter = require('./routes/products')
 // const apiUsersRouter = require('./routes/api/apiUsers')
+const googleRouter = require('./routes/google')
 
 const app = express()
 db.connect()
@@ -36,6 +37,7 @@ db.connect()
     // app.use('/api/users', apiUsersRouter) // class example
     app.use('/users', usersRouter)
     app.use('/products', productsRouter)
+    app.use('/sheets', googleRouter)
 
     // catch 404 and forward to error handler
     app.use(function (req, res, next) {
