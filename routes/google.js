@@ -69,47 +69,51 @@ async function listGSA (auth) {
   return gsaArray
 }
 
-router.get('/brands', async function (req, res, next) {
-  let readObj = {
-    // usersCollection: req.app.locals.usersCollection,
-    resource: req.baseUrl.slice(1) // need to add this to other routes and on users.js
-  }
-  console.log(`check brandsList: ${brandsList[0]}`)
+authorize(googleServer).then(userAuthed => {
+  router.get('/brands', async function (req, res, next) {
+    let readObj = {
+      // usersCollection: req.app.locals.usersCollection,
+      resource: req.baseUrl.slice(1) // need to add this to other routes and on users.js
+    }
+    console.log(`check brandsList: ${brandsList[0]}`)
 
-  if (brandsList[0] === 'empty') {
-    let userAuthed = await authorize(googleServer)
-    brandsList = await listBrands(userAuthed)
+    if (brandsList[0] === 'empty') {
+      // let userAuthed = await authorize(googleServer)
+      brandsList = await listBrands(userAuthed)
+        .then(response => {
+          brandsList = response
+          return brandsList
+        })
+        .catch(error => {
+          console.log('Error:', error)
+          res.status(500).json(error)
+        })
+    }
+    return res.send(brandsList)
+  })
+
+  router.get('/gsa', async function (req, res, next) {
+    let readObj = {
+      // usersCollection: req.app.locals.usersCollection,
+      resource: req.baseUrl.slice(1) // need to add this to other routes and on users.js
+    }
+    console.log(`check gsaList: ${gsaList[0]}`)
+
+    if (gsaList[0] === 'empty') {
+    }
+    // let userAuthed = await authorize(googleServer)
+    gsaList = await listGSA(userAuthed)
       .then(response => {
-        brandsList = response
-        return brandsList
+        console.log(`google get response: ${response[0]}`)
+        gsaList = response
+        return gsaList
       })
       .catch(error => {
         console.log('Error:', error)
         res.status(500).json(error)
       })
-  }
-  return res.send(brandsList)
-})
-
-router.get('/gsa', async function (req, res, next) {
-  let readObj = {
-    // usersCollection: req.app.locals.usersCollection,
-    resource: req.baseUrl.slice(1) // need to add this to other routes and on users.js
-  }
-
-  if (gsaList[0] === 'empty') {}
-  let userAuthed = await authorize(googleServer)
-  gsaList = await listGSA(userAuthed)
-    .then(response => {
-      console.log(`google get response: ${response[0]}`)
-      gsaList = response
-      return gsaList
-    })
-    .catch(error => {
-      console.log('Error:', error)
-      res.status(500).json(error)
-    })
     return res.send(gsaList)
+  })
 })
 
 module.exports = router
