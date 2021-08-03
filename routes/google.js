@@ -2,7 +2,8 @@ const express = require('express')
 const router = express.Router()
 require('dotenv').config()
 
-const {authorize, listBrands, listGSA, listArcteryx, listArcteryxVariants} = require('../google/google_functions')
+const {authorize} = require('../google/authGoogle')
+const {listBrands, listGSA, listGSAPriceListsMap, listArcteryx, listArcteryxVariants} = require('../google/google_DAL_functions')
 
 
 
@@ -25,6 +26,9 @@ console.log(`0 brandsList: ${brandsList}`)
 
 let gsaList = ['empty']
 console.log(`0 gsaList: ${gsaList}`)
+
+let gsaPriceList = ['empty']
+console.log(`0 gsaList: ${gsaPriceList}`)
 
 let arcteryxList = ['empty']
 console.log(`0 arcteryxList: ${arcteryxList}`)
@@ -76,6 +80,29 @@ authorize(googleServer, access_token).then(userAuthed => {
     return res.send(gsaList)
   })
 
+  router.get('/gsapricelists', async function (req, res, next) {
+    let readObj = {
+      // usersCollection: req.app.locals.usersCollection,
+      resource: req.baseUrl.slice(1) // need to add this to other routes and on users.js
+    }
+    console.log(`check gsaPriceList: ${gsaPriceList[0]}`)
+
+    if (gsaPriceList[0] === 'empty') {
+    }
+    // let userAuthed = await authorize(googleServer)
+    gsaPriceList = await listGSAPriceListsMap(userAuthed)
+      .then(response => {
+        console.log(`google get response: ${response[0]}`)
+        gsaPriceList = response
+        return gsaPriceList
+      })
+      .catch(error => {
+        console.log('Error:', error)
+        res.status(500).json(error)
+      })
+    return res.send(gsaPriceList)
+  })
+
   router.get('/arcteryx', async function (req, res, next) {
     let readObj = {
       // usersCollection: req.app.locals.usersCollection,
@@ -121,6 +148,8 @@ authorize(googleServer, access_token).then(userAuthed => {
       })
     return res.send(arcteryxList)
   })
+
+  
 })
 
 module.exports = router
