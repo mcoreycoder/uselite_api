@@ -122,20 +122,20 @@ async function listGSA (auth) {
 
 async function listArcteryx (auth) {
   let arcteryxArray = []
-  const mapArcItems = (itemsArray) =>
-  itemsArray.map((item) => {
+  const mapArcItems = itemsArray =>
+    itemsArray.map(item => {
       let itemObject = {
-        category_url: item[0],	
-        category: item[1],	
-        product_page_link_href: item[2],	
-        style_name: item[3],	
-        description: item[4],	
-        msrp: item[5],	
-        Sizes: item[6],	
-        Weight: item[7],	
-        SKU: item[8],	
-        title: item[9],	
-        img_src: item[10],
+        category_url: item[0],
+        category: item[1],
+        product_page_link_href: item[2],
+        style_name: item[3],
+        description: item[4],
+        msrp: item[5],
+        Sizes: item[6],
+        Weight: item[7],
+        SKU: item[8],
+        title: item[9],
+        img_src: item[10]
       }
 
       arcteryxArray = [...arcteryxArray, itemObject]
@@ -152,7 +152,7 @@ async function listArcteryx (auth) {
   }
 
   try {
-  await getArcteryx().then(res => mapArcItems(res))
+    await getArcteryx().then(res => mapArcItems(res))
   } catch (err) {
     console.error(`listArcteryx Oh Sheet! and err:\n`, err)
   }
@@ -168,7 +168,7 @@ async function listArcteryxVariants (auth) {
     cellMax: 'X952'
   }
 
-  const mapArcVariants = (getArray) => {
+  const mapArcVariants = getArray => {
     getArray.map((item, i) => {
       let itemObject = {
         Model: item[0],
@@ -189,11 +189,11 @@ async function listArcteryxVariants (auth) {
   }
 
   try {
-      await getGoogleSheet(auth, sheetInfo).then(res => mapArcVariants(res))
+    await getGoogleSheet(auth, sheetInfo).then(res => mapArcVariants(res))
   } catch (err) {
     console.error(`listArcteryxVariants Oh Sheet! and err:\n`, err)
   }
-  
+
   return ArcVariantsArray
 }
 
@@ -208,83 +208,160 @@ async function listGSAPriceListsMap (auth) {
   }
 
   const mapGSAPriceListsMap = list => {
-    let priceListMapObject = {}
+    // remove first item of the list array, sheets column 'headers',
+    // assigning to an object using the spread opperator assigns the index as the property name making it easier to use when
+    // creating the priceListObject and assigning the key:value using the index passed through the item.map() below
+    let priceListMapObject = { ...list.shift() }
 
-    return list.map((item, i) => {
-      let priceListObject = {
-        Vendor: item[0],
-        Brand: item[1],
-        Active: item[2],
-        Last_Check: item[3],
-        Notes: item[4],
-        GSADriveLink: item[5],
-        Current_GSA_Price_List_Name: item[6],
-        Vendor_Price_List_file: item[7],
-        //map docLink and tab name
-        Current_GSA_Price_List_GoogleDoc: item[8],
-        Pricing_Sheet_Name: item[9],
-        Data_Range: item[10],
-        //map columns 
-        Parent_SKU: item[11],
-        PRODUCT_NAME: item[12],
-        Wholesale: item[13],
-        GSA_Cost: item[14], //currently same as above
-        MSRP: item[15],
-        MAP: item[16],
-        GSA_MAP: item[17], //currently same as above
-        COO: item[18],
-        UPC: item[19],
-        //map docLink and tab name
-        UPC_Google_UP_file: item[20],
-        UPC_Sheet_Name: item[21],
-        UPC_Data_Range: item[22],
-        //map columns 
-        UPC_Parent_SKU: item[23],
-        UPC_Variant_SKU: item[24],
-        UPC_Color: item[25],
-        UPC_Size: item[26],
-        UPC_Length: item[27],
-        UPC_ProductName: item[28],
-        UPC_WHLS: item[29],
-        UPC_MSRP: item[30],
-        UPC_MAP: item[31],
-        UPC_COO: item[32],
-        UPC_UPC: item[33],
-
-        
-      }
-
+    let composeMappedList = list.map((item, i) => {
+      let priceListObject = {}
+      item.map((prop, j) => {
+        // use the priceListMapObject and index in the item.map() to select the correct key:value to set property names on the priceListObject when assigning the prop value
+        priceListObject[priceListMapObject[j]] = prop
+      })
       listsArray = [...listsArray, priceListObject].sort((a, b) =>
         compare(a.Brand, b.Brand)
       )
-    })}
-
-  await getGoogleSheet(auth, sheetInfo).then(res => mapGSAPriceListsMap(res))
-
-  return listsArray
-}
-
-async function priceListsData (auth, sheetDeets) { //may need some work to make it more dynamic to stitch all data together
-  let productArray = []
-  const sheetInfo = {
-    sheetId: `${sheetDeets.Current_GSA_Price_List_GoogleDoc}`, // Current_GSA_Price_List_GoogleDoc Link, need to remove all but sheet Id
-    tabName: `${sheetDeets.Pricing_Sheet_Name}`,
-    cellMin: `A1`, //need to figure out how to best set only have the column range
-    cellMax: `${sheetDeets}`, //need to figure out how to best set only have the range
+    })
+    return composeMappedList
   }
 
-  const mapGSAPriceListsMap = list => // need to refactor
-    list.map((item, i) => {
-      let mappedItemObject = {
-        // add item stucture
-      }
-
-      productArray = [...productArray, mappedItemObject] //may need to ve refactored 
-    })
-
   await getGoogleSheet(auth, sheetInfo).then(res => mapGSAPriceListsMap(res))
 
-  return listsArray
+  // return listsArray
+  return priceListsData (auth, listsArray[1])
+}
+
+async function priceListsData (auth, sheetDeets) {
+  //may need some work to make it more dynamic to stitch all data together
+  let productArray = []
+  var alphabet = [
+    'a',
+    'b',
+    'c',
+    'd',
+    'e',
+    'f',
+    'g',
+    'h',
+    'i',
+    'j',
+    'k',
+    'l',
+    'm',
+    'n',
+    'o',
+    'p',
+    'q',
+    'r',
+    's',
+    't',
+    'u',
+    'v',
+    'w',
+    'x',
+    'y',
+    'z'
+  ]
+
+  let priceSheetId = sheetDeets.Google_Price_List_file.replace(
+    'https://docs.google.com/spreadsheets/d/',
+    ''
+  ).split('/')[0] // reduce link to just the id
+
+  let upcSheetId = sheetDeets.Google_UPC_file.replace(
+    'https://docs.google.com/spreadsheets/d/',
+    ''
+  ).split('/')[0] // reduce link to just the id
+
+  const priceSheetInfo = {
+    sheetId: `${priceSheetId}`,
+    tabName: `${sheetDeets.Price_Sheet_Name}`,
+    cellMin: `${sheetDeets.Price_Data_Range.split(':')[0]}`,
+    cellMax: `${sheetDeets.Price_Data_Range.split(':')[1]}`,
+    Price_Parent_SKU: alphabet.indexOf(sheetDeets.Price_Parent_SKU.toLowerCase()),
+    Price_PRODUCT_NAME: alphabet.indexOf(sheetDeets.Price_PRODUCT_NAME.toLowerCase()),
+    Price_Wholesale: alphabet.indexOf(sheetDeets.Price_Wholesale.toLowerCase()),
+    Price_GSA_Cost: alphabet.indexOf(sheetDeets.Price_GSA_Cost.toLowerCase()),
+    Price_MSRP: alphabet.indexOf(sheetDeets.Price_MSRP.toLowerCase()),
+    Price_MAP: alphabet.indexOf(sheetDeets.Price_MAP.toLowerCase()),
+    Price_GSA_MAP: alphabet.indexOf(sheetDeets.Price_GSA_MAP.toLowerCase()),
+    Price_COO: alphabet.indexOf(sheetDeets.Price_COO.toLowerCase()),
+    Price_UPC: alphabet.indexOf(sheetDeets.Price_UPC.toLowerCase()),
+  }
+  const upcSheetInfo = {
+    sheetId: `${upcSheetId}`,
+    tabName: `${sheetDeets.UPC_Sheet_Name}`,
+    cellMin: `${sheetDeets.UPC_Data_Range.split(':')[0]}`,
+    cellMax: `${sheetDeets.UPC_Data_Range.split(':')[1]}`,
+    UPC_Parent_SKU: alphabet.indexOf(sheetDeets.UPC_Parent_SKU.toLowerCase()),
+    UPC_Variant_SKU: alphabet.indexOf(sheetDeets.UPC_Variant_SKU.toLowerCase()),
+    UPC_Color: alphabet.indexOf(sheetDeets.UPC_Color.toLowerCase()),
+    UPC_Size: alphabet.indexOf(sheetDeets.UPC_Size.toLowerCase()),
+    UPC_Length: alphabet.indexOf(sheetDeets.UPC_Length.toLowerCase()),
+    UPC_ProductName: alphabet.indexOf(sheetDeets.UPC_ProductName.toLowerCase()),
+    UPC_WHLS: alphabet.indexOf(sheetDeets.UPC_WHLS.toLowerCase()),
+    UPC_MSRP: alphabet.indexOf(sheetDeets.UPC_MSRP.toLowerCase()),
+    UPC_MAP: alphabet.indexOf(sheetDeets.UPC_MAP.toLowerCase()),
+    UPC_COO: alphabet.indexOf(sheetDeets.UPC_COO.toLowerCase()),
+    UPC_UPC: alphabet.indexOf(sheetDeets.UPC_UPC.toLowerCase()),
+  }
+  console.log(`
+  priceSheetInfo:\n`,
+  priceSheetInfo,
+  `\n
+  upcSheetInfo:\n`,
+  upcSheetInfo)
+
+  // need to refactor
+  const mapGSAPriceListsMap = (list,sheet) =>
+    list.map((item, i) => {
+      let priceItemObject = {
+        // add item stucture
+        // ...item
+        sheet: sheet,
+        Google_Price_List_file: `https://docs.google.com/spreadsheets/d/${priceSheetInfo.sheetId}`,
+        Price_Sheet_Name: item[priceSheetInfo.Price_Sheet_Name],
+        Price_Data_Range: item[priceSheetInfo.Price_Data_Range],
+        Price_Parent_SKU: item[priceSheetInfo.Price_Parent_SKU],
+        Price_PRODUCT_NAME: item[priceSheetInfo.Price_PRODUCT_NAME],
+        Price_Wholesale: item[priceSheetInfo.Price_Wholesale],
+        Price_GSA_Cost: item[priceSheetInfo.Price_GSA_Cost],
+        Price_MSRP: item[priceSheetInfo.Price_MSRP],
+        Price_MAP: item[priceSheetInfo.Price_MAP],
+        Price_GSA_MAP: item[priceSheetInfo.Price_GSA_MAP],
+        Price_COO: item[priceSheetInfo.Price_COO],
+        Price_UPC: item[priceSheetInfo.Price_UPC],
+      }
+      let upcItemObject = {
+        sheet: sheet,
+        Google_UPC_file: `https://docs.google.com/spreadsheets/d/${upcSheetInfo.sheetId}`,
+        UPC_Sheet_Name: item[upcSheetInfo.UPC_Sheet_Name],
+        UPC_Data_Range: item[upcSheetInfo.UPC_Data_Range],
+        UPC_Parent_SKU: item[upcSheetInfo.UPC_Parent_SKU],
+        UPC_Variant_SKU: item[upcSheetInfo.UPC_Variant_SKU],
+        UPC_Color: item[upcSheetInfo.UPC_Color],
+        UPC_Size: item[upcSheetInfo.UPC_Size],
+        UPC_Length: item[upcSheetInfo.UPC_Length],
+        UPC_ProductName: item[upcSheetInfo.UPC_ProductName],
+        UPC_WHLS: item[upcSheetInfo.UPC_WHLS],
+        UPC_MSRP: item[upcSheetInfo.UPC_MSRP],
+        UPC_MAP: item[upcSheetInfo.UPC_MAP],
+        UPC_COO: item[upcSheetInfo.UPC_COO],
+        UPC_UPC: item[upcSheetInfo.UPC_UPC],
+      }
+
+      mappedItemObject = (sheet === "priceSheetInfo") ? priceItemObject : upcItemObject
+
+      productArray = [...productArray, mappedItemObject] //may need to be refactored
+    })
+
+  await getGoogleSheet(auth, priceSheetInfo).then(res =>
+    mapGSAPriceListsMap(res, "priceSheetInfo")
+  )
+  await getGoogleSheet(auth, upcSheetInfo).then(res => mapGSAPriceListsMap(res, "upcSheetInfo"))
+
+  return productArray
 }
 
 // module.exports.authorize = authorize
