@@ -12,4 +12,4 @@ async function authorize (googleServer, access_token) {
     return oAuth2Client
   }
 
-  module.exports.authorize = authorize
+  module.exports = authorize

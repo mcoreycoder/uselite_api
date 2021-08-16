@@ -1,15 +1,19 @@
-const { google } = require('googleapis')
-const { getGoogleSheet } = require('./getGoogleSheet')
+// const { google } = require('googleapis')
+const getGoogleSheet = require('./getGoogleSheet')
+const getPriceListsMap = require('./DAL/getPriceListmap')
+const getPriceListData = require('./DAL/getPriceListData')
+const getUPC_ListData = require('./DAL/getUPC_ListData')
+const { mapVariantsToProducts, compare } = require('./helpers')
 
-const compare = (a, b) => {
-  if (a < b) {
-    return -1
-  }
-  if (a > b) {
-    return 1
-  }
-  return 0
-}
+// const compare = (a, b) => {
+//   if (a < b) {
+//     return -1
+//   }
+//   if (a > b) {
+//     return 1
+//   }
+//   return 0
+// }
 
 async function listBrands (auth) {
   let brandArray = []
@@ -63,27 +67,27 @@ async function listGSA (auth) {
   const mapLists = (list, listName) =>
     list.map((item, i) => {
       let itemObject = {
-        GSA_Item_List: `${listName}`,
+        gsa_item_list: `${listName}`,
         hasNewSKU:
           listName === 'Current GSA'
             ? item[28] !== item[6]
               ? item[28]
               : 'No New Sku'
             : 'No New Sku',
-        Last_Mod: item[0],
-        Brand: item[5],
-        SKU: item[6],
-        Product_Name: item[9],
-        Unit_of_Measure: item[11],
-        Retail: item[17],
-        GSA_Discount: item[18],
-        GSA_Price_without_IFF: item[19],
-        GSA_Price_with_IFF: item[20],
-        Country_of_Origin: item[22],
-        Description: item[10]
+        last_mod: item[0],
+        brand: item[5],
+        sku: item[6],
+        product_name: item[9],
+        unit_of_measure: item[11],
+        retail: item[17],
+        gsa_discount: item[18],
+        gsa_price_without_iff: item[19],
+        gsa_price_with_iff: item[20],
+        country_of_origin: item[22],
+        description: item[10]
       }
 
-      itemObject.SKU !== '#N/A'
+      itemObject.sku !== '#N/A'
         ? (itemArray = [...itemArray, itemObject])
         : itemArray
     })
@@ -117,7 +121,7 @@ async function listGSA (auth) {
   await listPastGSA()
   await listCurrentGSA()
 
-  return itemArray.sort((a, b) => compare(a.SKU, b.SKU))
+  return itemArray.sort((a, b) => compare(a.sku, b.sku))
 }
 
 async function listArcteryx (auth) {
@@ -197,176 +201,95 @@ async function listArcteryxVariants (auth) {
   return ArcVariantsArray
 }
 
+// new formatting of functions
+
 async function listGSAPriceListsMap (auth) {
-  let listsArray = []
-  const sheetInfo = {
-    sheetId: '16bp80BxUOcct7aQY44cfU1WFmpI1BI4Qg5dS-vRNUXI', // 2021 in Development Test > Brands > _GSA_PriceListMap folder
-    // sheetId: '1UA4B3ZyerKkTwMrHX3CpvTTazfSRRjCxKKIwQHc0Z0Y', // 7.15.21 copy of GSAbrands2021
-    tabName: 'Brands',
-    cellMin: 'A1',
-    cellMax: 'AU8'
+  let listData = await getPriceListsMap(auth)
+  let productArray = []
+  for (i = 0; i < listData.length; i++) {
+    productArray = [
+      ...productArray,
+      ...(await getPriceListData(auth, listData[i]))
+    ]
+    console.log(`Price listData[i] ${listData[i].brand}`)
   }
 
-  const mapGSAPriceListsMap = list => {
-    // remove first item of the list array, sheets column 'headers',
-    // assigning to an object using the spread opperator assigns the index as the property name making it easier to use when
-    // creating the priceListObject and assigning the key:value using the index passed through the item.map() below
-    let priceListMapObject = { ...list.shift() }
-
-    let composeMappedList = list.map((item, i) => {
-      let priceListObject = {}
-      item.map((prop, j) => {
-        // use the priceListMapObject and index in the item.map() to select the correct key:value to set property names on the priceListObject when assigning the prop value
-        priceListObject[priceListMapObject[j]] = prop
-      })
-      listsArray = [...listsArray, priceListObject].sort((a, b) =>
-        compare(a.Brand, b.Brand)
-      )
-    })
-    return composeMappedList
+  let productVariantArray = []
+  for (i = 0; i < listData.length; i++) {
+    productVariantArray = [
+      ...productVariantArray,
+      ...(await getUPC_ListData(auth, listData[i]))
+    ]
+    console.log(`UPC listData[i] ${listData[i].brand}`)
   }
 
-  await getGoogleSheet(auth, sheetInfo).then(res => mapGSAPriceListsMap(res))
-
-  // return listsArray
-  return priceListsData (auth, listsArray[1])
+  return mapVariantsToProducts(productArray, productVariantArray)
 }
 
-async function priceListsData (auth, sheetDeets) {
-  //may need some work to make it more dynamic to stitch all data together
+// ******* listGSAPricelistsmap broken down into seperate functions
+async function listPriceListsMap (auth) {
+  let listData = await getPriceListsMap(auth)
+  return listData
+}
+
+async function getProductData (auth, listsData) {
   let productArray = []
-  var alphabet = [
-    'a',
-    'b',
-    'c',
-    'd',
-    'e',
-    'f',
-    'g',
-    'h',
-    'i',
-    'j',
-    'k',
-    'l',
-    'm',
-    'n',
-    'o',
-    'p',
-    'q',
-    'r',
-    's',
-    't',
-    'u',
-    'v',
-    'w',
-    'x',
-    'y',
-    'z'
-  ]
-
-  let priceSheetId = sheetDeets.Google_Price_List_file.replace(
-    'https://docs.google.com/spreadsheets/d/',
-    ''
-  ).split('/')[0] // reduce link to just the id
-
-  let upcSheetId = sheetDeets.Google_UPC_file.replace(
-    'https://docs.google.com/spreadsheets/d/',
-    ''
-  ).split('/')[0] // reduce link to just the id
-
-  const priceSheetInfo = {
-    sheetId: `${priceSheetId}`,
-    tabName: `${sheetDeets.Price_Sheet_Name}`,
-    cellMin: `${sheetDeets.Price_Data_Range.split(':')[0]}`,
-    cellMax: `${sheetDeets.Price_Data_Range.split(':')[1]}`,
-    Price_Parent_SKU: alphabet.indexOf(sheetDeets.Price_Parent_SKU.toLowerCase()),
-    Price_PRODUCT_NAME: alphabet.indexOf(sheetDeets.Price_PRODUCT_NAME.toLowerCase()),
-    Price_Wholesale: alphabet.indexOf(sheetDeets.Price_Wholesale.toLowerCase()),
-    Price_GSA_Cost: alphabet.indexOf(sheetDeets.Price_GSA_Cost.toLowerCase()),
-    Price_MSRP: alphabet.indexOf(sheetDeets.Price_MSRP.toLowerCase()),
-    Price_MAP: alphabet.indexOf(sheetDeets.Price_MAP.toLowerCase()),
-    Price_GSA_MAP: alphabet.indexOf(sheetDeets.Price_GSA_MAP.toLowerCase()),
-    Price_COO: alphabet.indexOf(sheetDeets.Price_COO.toLowerCase()),
-    Price_UPC: alphabet.indexOf(sheetDeets.Price_UPC.toLowerCase()),
+  for (i = 0; i < listsData.length; i++) {
+    productArray = [
+      ...productArray,
+      ...(await getPriceListData(auth, listsData[i]))
+    ]
+    console.log(`priceLists[i] ${listsData[i].Brand}`)
   }
-  const upcSheetInfo = {
-    sheetId: `${upcSheetId}`,
-    tabName: `${sheetDeets.UPC_Sheet_Name}`,
-    cellMin: `${sheetDeets.UPC_Data_Range.split(':')[0]}`,
-    cellMax: `${sheetDeets.UPC_Data_Range.split(':')[1]}`,
-    UPC_Parent_SKU: alphabet.indexOf(sheetDeets.UPC_Parent_SKU.toLowerCase()),
-    UPC_Variant_SKU: alphabet.indexOf(sheetDeets.UPC_Variant_SKU.toLowerCase()),
-    UPC_Color: alphabet.indexOf(sheetDeets.UPC_Color.toLowerCase()),
-    UPC_Size: alphabet.indexOf(sheetDeets.UPC_Size.toLowerCase()),
-    UPC_Length: alphabet.indexOf(sheetDeets.UPC_Length.toLowerCase()),
-    UPC_ProductName: alphabet.indexOf(sheetDeets.UPC_ProductName.toLowerCase()),
-    UPC_WHLS: alphabet.indexOf(sheetDeets.UPC_WHLS.toLowerCase()),
-    UPC_MSRP: alphabet.indexOf(sheetDeets.UPC_MSRP.toLowerCase()),
-    UPC_MAP: alphabet.indexOf(sheetDeets.UPC_MAP.toLowerCase()),
-    UPC_COO: alphabet.indexOf(sheetDeets.UPC_COO.toLowerCase()),
-    UPC_UPC: alphabet.indexOf(sheetDeets.UPC_UPC.toLowerCase()),
-  }
-  console.log(`
-  priceSheetInfo:\n`,
-  priceSheetInfo,
-  `\n
-  upcSheetInfo:\n`,
-  upcSheetInfo)
-
-  // need to refactor
-  const mapGSAPriceListsMap = (list,sheet) =>
-    list.map((item, i) => {
-      let priceItemObject = {
-        // add item stucture
-        // ...item
-        sheet: sheet,
-        Google_Price_List_file: `https://docs.google.com/spreadsheets/d/${priceSheetInfo.sheetId}`,
-        Price_Sheet_Name: item[priceSheetInfo.Price_Sheet_Name],
-        Price_Data_Range: item[priceSheetInfo.Price_Data_Range],
-        Price_Parent_SKU: item[priceSheetInfo.Price_Parent_SKU],
-        Price_PRODUCT_NAME: item[priceSheetInfo.Price_PRODUCT_NAME],
-        Price_Wholesale: item[priceSheetInfo.Price_Wholesale],
-        Price_GSA_Cost: item[priceSheetInfo.Price_GSA_Cost],
-        Price_MSRP: item[priceSheetInfo.Price_MSRP],
-        Price_MAP: item[priceSheetInfo.Price_MAP],
-        Price_GSA_MAP: item[priceSheetInfo.Price_GSA_MAP],
-        Price_COO: item[priceSheetInfo.Price_COO],
-        Price_UPC: item[priceSheetInfo.Price_UPC],
-      }
-      let upcItemObject = {
-        sheet: sheet,
-        Google_UPC_file: `https://docs.google.com/spreadsheets/d/${upcSheetInfo.sheetId}`,
-        UPC_Sheet_Name: item[upcSheetInfo.UPC_Sheet_Name],
-        UPC_Data_Range: item[upcSheetInfo.UPC_Data_Range],
-        UPC_Parent_SKU: item[upcSheetInfo.UPC_Parent_SKU],
-        UPC_Variant_SKU: item[upcSheetInfo.UPC_Variant_SKU],
-        UPC_Color: item[upcSheetInfo.UPC_Color],
-        UPC_Size: item[upcSheetInfo.UPC_Size],
-        UPC_Length: item[upcSheetInfo.UPC_Length],
-        UPC_ProductName: item[upcSheetInfo.UPC_ProductName],
-        UPC_WHLS: item[upcSheetInfo.UPC_WHLS],
-        UPC_MSRP: item[upcSheetInfo.UPC_MSRP],
-        UPC_MAP: item[upcSheetInfo.UPC_MAP],
-        UPC_COO: item[upcSheetInfo.UPC_COO],
-        UPC_UPC: item[upcSheetInfo.UPC_UPC],
-      }
-
-      mappedItemObject = (sheet === "priceSheetInfo") ? priceItemObject : upcItemObject
-
-      productArray = [...productArray, mappedItemObject] //may need to be refactored
-    })
-
-  await getGoogleSheet(auth, priceSheetInfo).then(res =>
-    mapGSAPriceListsMap(res, "priceSheetInfo")
-  )
-  await getGoogleSheet(auth, upcSheetInfo).then(res => mapGSAPriceListsMap(res, "upcSheetInfo"))
-
   return productArray
 }
+
+/*revised above to get ALL product data, not just priceList data*/
+async function getAllProductsData (auth, listsData) {
+  let productArray = []
+  for (i = 0; i < listsData.length; i++) {
+    let foundData = await getPriceListData(auth, listsData[i])
+    console.log(`251 DAL getAllProductsData listData.length: ${listsData.length}\n listsData[i].brand: ${listsData[i].brand}`)
+    productArray = [
+      ...productArray,
+      ...(foundData)
+    ]
+    console.log(`256 DAL Price listsData[i].brand: ${listsData[i].brand}`)
+  }
+
+  let productVariantArray = []
+  for (i = 0; i < listsData.length; i++) {
+    productVariantArray = [
+      ...productVariantArray,
+      ...(await getUPC_ListData(auth, listsData[i]))
+    ]
+    console.log(`265 DAL UPC listData[i] ${listsData[i].brand}`)
+  }
+
+  return mapVariantsToProducts(productArray, productVariantArray)
+}
+
+// async function getProductVariantData (auth, listsData) {
+//   let productVariantArray = []
+//   for (i = 0; i < listsData.length; i++) {
+//     productVariantArray = [
+//       ...productVariantArray,
+//       ...(await getUPC_ListData(auth, listsData[i]))
+//     ]
+//     console.log(`UPC listData[i] ${listsData[i].Brand}`)
+//   }
+//   return productVariantArray
+// }
 
 // module.exports.authorize = authorize
 module.exports.listBrands = listBrands
 module.exports.listGSA = listGSA
 module.exports.listArcteryx = listArcteryx
 module.exports.listArcteryxVariants = listArcteryxVariants
+
+// new formatting of functions
 module.exports.listGSAPriceListsMap = listGSAPriceListsMap
+module.exports.listPriceListsMap = listPriceListsMap
+module.exports.getProductData = getProductData
+module.exports.getAllProductsData = getAllProductsData
+// module.exports.getProductVariantData = getProductVariantData

@@ -2,10 +2,18 @@ const express = require('express')
 const router = express.Router()
 require('dotenv').config()
 
-const {authorize} = require('../google/authGoogle')
-const {listBrands, listGSA, listGSAPriceListsMap, listArcteryx, listArcteryxVariants} = require('../google/google_DAL_functions')
-
-
+const authorize = require('../google/authGoogle')
+const {
+  listBrands,
+  listGSA,
+  listGSAPriceListsMap,
+  listArcteryx,
+  listArcteryxVariants,
+  listPriceListsMap,
+  getAllProductsData,
+  getProductData,
+  getProductVariantData
+} = require('../google/google_DAL_functions')
 
 const access_token = `${process.env.ACCESS_TOKEN}`
 const googleServer = {
@@ -33,6 +41,9 @@ console.log(`0 gsaList: ${gsaPriceList}`)
 let arcteryxList = ['empty']
 console.log(`0 arcteryxList: ${arcteryxList}`)
 
+let priceListsArray = ['empty']
+let productListsArray = ['empty']
+let productVariantArray = ['empty']
 
 authorize(googleServer, access_token).then(userAuthed => {
   router.get('/brands', async function (req, res, next) {
@@ -70,8 +81,7 @@ authorize(googleServer, access_token).then(userAuthed => {
     gsaList = await listGSA(userAuthed)
       .then(response => {
         console.log(`google get response: ${response[0]}`)
-        gsaList = response
-        return gsaList
+        return response
       })
       .catch(error => {
         console.log('Error:', error)
@@ -125,7 +135,7 @@ authorize(googleServer, access_token).then(userAuthed => {
       })
     return res.send(arcteryxList)
   })
-  
+
   router.get('/listArcteryxVariants', async function (req, res, next) {
     let readObj = {
       // usersCollection: req.app.locals.usersCollection,
@@ -149,7 +159,67 @@ authorize(googleServer, access_token).then(userAuthed => {
     return res.send(arcteryxList)
   })
 
-  
+  // revising routes *************************************************************
+
+  router.get('/pricelists', async function (req, res, next) {
+    let priceListData = await listPriceListsMap(userAuthed)
+      .then(response => {
+        priceListsArray = response
+        return response
+      })
+      .catch(error => {
+        console.log('Error:', error)
+        res.status(500).json(error)
+      })
+    return res.send(priceListData)
+  })
+
+  router.get('/products', async function (req, res, next) {
+    if (priceListsArray[0] === 'empty') {
+      priceListsArray = await listPriceListsMap(userAuthed).catch(error => {
+        console.log('google Error:', error)
+        res.status(500).json(error)
+      })
+    }
+
+    let brands = req.query.brands.split(',')
+    console.log(
+      `google line 182 - /product req.query: ${brands}\n priceListsArray.lenght: ${priceListsArray.length}`
+    ) // need to be able to pass multiple brands
+    // console.log(
+    //   `line 183 - /product priceListsArray[1].Brand should show "Arc'teryx": "${priceListsArray[1].brand}"`
+    // ) // working to filter to only what is in req.query, // need to be able to pass multiple brands
+    let myFilter = brands.map((el, i) => {
+      return priceListsArray.filter(priceList => priceList.brand === el)[0]
+    })
+    console.log(
+      `google line 185 - /product priceListsArray.filter() should show ${brands[0]}: ${myFilter[0].brand}`
+    ) // working to filter to only what is in req.query, // need to be able to pass multiple brands
+
+    let productData = await getAllProductsData(userAuthed, myFilter)
+      .then(response => {
+        productListsArray = response
+        return response
+      })
+      .catch(error => {
+        console.log('Error:', error)
+        res.status(500).json(error)
+      })
+    return res.send(productData)
+  })
+
+  // router.get('/variants', async function (req, res, next) {
+  //   let productData = await getProductVariantData(userAuthed, priceLists=[priceListsArray[0]])
+  //     .then(response => {
+  //       productListsArray = response
+  //       return response
+  //     })
+  //     .catch(error => {
+  //       console.log('Error:', error)
+  //       res.status(500).json(error)
+  //     })
+  //   return res.send(productData)
+  // })
 })
 
 module.exports = router

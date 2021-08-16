@@ -50,7 +50,7 @@ async function getGoogleSheet (auth, sheetInfo) {
   const cellMin = sheetInfo.cellMin
   const cellMax = sheetInfo.cellMax
   let dataArray = []
-  console.log('`${tabName}!${cellMin}:${cellMax}`:', `${tabName}!${cellMin}:${cellMax}`)
+  // console.log(`getGoogleSheet '{tabName}!{cellMin}:{cellMax}':${tabName}!${cellMin}:${cellMax}`)
   try {
     dataArray = (
       await google.sheets({ version: 'v4', auth }).spreadsheets.values.get({
@@ -67,4 +67,4 @@ async function getGoogleSheet (auth, sheetInfo) {
 
 // module.exports.listPastGSA = listPastGSA
 // module.exports.listCurrentGSA = listCurrentGSA
-module.exports.getGoogleSheet = getGoogleSheet
+module.exports = getGoogleSheet
