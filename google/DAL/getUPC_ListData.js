@@ -2,6 +2,9 @@ const getGoogleSheet = require('../getGoogleSheet')
 const { alphabet } = require('../helpers')
 
 async function getUPC_ListData (auth, sheetDeets) {
+  console.log(`sheetDeets: ${Object.keys(sheetDeets)}`)
+  // console.log(`sheetDeets: ${sheetDeets.brand}`)
+
   let productVariantArray = []
   let upcSheetId = sheetDeets.google_upc_file
     .replace('https://docs.google.com/spreadsheets/d/', '')
@@ -26,13 +29,46 @@ async function getUPC_ListData (auth, sheetDeets) {
     upc_upc: alphabet.indexOf(sheetDeets.upc_upc.toLowerCase())
   }
 
+  const handelFullSKUFormatException = product => {
+    if (sheetDeets.brand.includes('ARROWHEAD')) {
+      return product[upcSheetInfo.upc_variant_sku]
+    }
+    if (sheetDeets.brand.includes('Salomon')) {
+      return (
+        product[upcSheetInfo.upc_parent_sku] +
+        '-' +
+        product[upcSheetInfo.upc_size]
+      )
+    }
+    if (sheetDeets.brand.includes('Drifire')) {
+      if (product[upcSheetInfo.upc_fullsku]) {
+        return product[upcSheetInfo.upc_fullsku]
+      }
+      return (
+        product[upcSheetInfo.upc_parent_sku] +
+        product[upcSheetInfo.upc_variant_sku]
+      )
+    }
+
+    return (
+      product[upcSheetInfo.upc_parent_sku] +
+      '-' +
+      product[upcSheetInfo.upc_variant_sku] +
+      '-' +
+      product[upcSheetInfo.upc_size]
+    )
+  }
+
   const mapUPCListsMap = (list, sheet) =>
     list.map((item, i) => {
+      // console.log(`list item: ${item}`)
+
       let upcItemObject = {
-        sheet: `${sheetDeets.brand} ${sheet}`,
-        google_upc_file: `https://docs.google.com/spreadsheets/d/${upcSheetInfo.sheetId}`,
-        upc_sheet_name: item[upcSheetInfo.upc_sheet_name],
-        upc_data_range: item[upcSheetInfo.upc_data_range],
+        // sheet: `${sheetDeets.brand} ${sheet}`,
+        // google_upc_file: `https://docs.google.com/spreadsheets/d/${upcSheetInfo.sheetId}`,
+        // upc_sheet_name: item[upcSheetInfo.upc_sheet_name],
+        // upc_data_range: item[upcSheetInfo.upc_data_range],
+        fullSKU: handelFullSKUFormatException(item),
         upc_parent_sku: item[upcSheetInfo.upc_parent_sku],
         upc_variant_sku: item[upcSheetInfo.upc_variant_sku],
         upc_color: item[upcSheetInfo.upc_color],

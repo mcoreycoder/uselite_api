@@ -8,10 +8,13 @@ async function getPriceListData (auth, sheetDeets) {
   let priceSheetId = sheetDeets.google_price_list_file
     .replace('https://docs.google.com/spreadsheets/d/', '')
     .split('/')[0] // reduce link to just the id
+  let upcSheetId = sheetDeets.google_upc_file
+    .replace('https://docs.google.com/spreadsheets/d/', '')
+    .split('/')[0] // reduce link to just the id
 
   const priceSheetInfo = {
     sheetId: `${priceSheetId}`,
-    tabName: `${sheetDeets.price_sheet_name}`,
+    tabName: `${sheetDeets.tabName}`,
     cellMin: `${sheetDeets.price_data_range.split(':')[0]}`,
     cellMax: `${sheetDeets.price_data_range.split(':')[1]}`,
     brand: `${sheetDeets.brand}`,
@@ -33,12 +36,18 @@ async function getPriceListData (auth, sheetDeets) {
   const mapGSAPriceListsMap = (list, sheetIdentifier) =>
     list.map((item, i) => {
       let priceItemObject = {
-        // carry over some details from the price list
-        sheet: `${priceSheetInfo.brand} ${sheetIdentifier}`,
-        google_price_list_file: `https://docs.google.com/spreadsheets/d/${priceSheetInfo.sheetId}`,
-        price_sheet_name: priceSheetInfo.price_sheet_name,
-        price_data_range: priceSheetInfo.price_data_range,
-        brand: priceSheetInfo.brand,
+        //test below google files
+        // google_price_list_file: `https://docs.google.com/spreadsheets/d/${priceSheetInfo.sheetId}`,
+        google_price_list_file: `https://docs.google.com/spreadsheets/d/${priceSheetId}`,
+        // google_upc_file: sheetDeets.google_upc_file,
+        google_upc_file: `https://docs.google.com/spreadsheets/d/${upcSheetId}`,
+        //test complete --------
+
+        // carry over some details from the price list (sheetDeets)
+        current_gsa_price_list_name: sheetDeets.current_gsa_price_list_name,
+        tabName: sheetDeets.tabName,
+        price_data_range: sheetDeets.price_data_range,
+        brand: sheetDeets.brand,
         // add item stucture for what is pulled from the price list sheet
         price_parent_sku: item[priceSheetInfo.price_parent_sku],
         price_product_name: item[priceSheetInfo.price_product_name],
@@ -51,10 +60,20 @@ async function getPriceListData (auth, sheetDeets) {
         price_upc: item[priceSheetInfo.price_upc]
       }
 
-      // mappedItemObject = (sheet === "priceSheetInfo") ? priceItemObject : upcItemObject
-      // productArray = [...productArray, mappedItemObject] //may need to be refactored
+      if (sheetDeets.brand.includes("ARROWHEAD")){
+        // console.log("ARROWHEAD")
+        if (productArray[productArray.length-1]?.price_parent_sku === priceItemObject.price_parent_sku){
+                  // console.log(`ARROWHEAD ${priceItemObject.price_parent_sku}`)
+                  priceItemObject.price_parent_sku = undefined
+        }
+              }
 
-      return (productArray = [...productArray, priceItemObject])
+      if (priceItemObject.price_parent_sku !== undefined) {
+        productArray = [...productArray, priceItemObject]
+      }
+      
+
+      return productArray
     })
 
   await getGoogleSheet(auth, priceSheetInfo).then(res =>

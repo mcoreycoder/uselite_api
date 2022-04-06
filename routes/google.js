@@ -10,7 +10,9 @@ const {
   listArcteryx,
   listArcteryxVariants,
   listPriceListsMap,
+  listGSA_DocsListsMap,
   getAllProductsData,
+  getAllDocsData,
   getProductData,
   getProductVariantData
 } = require('../google/google_DAL_functions')
@@ -44,6 +46,9 @@ console.log(`0 arcteryxList: ${arcteryxList}`)
 let priceListsArray = ['empty']
 let productListsArray = ['empty']
 let productVariantArray = ['empty']
+
+let docsListsArray = ['empty']
+let docsDataArray = ['empty']
 
 authorize(googleServer, access_token).then(userAuthed => {
   router.get('/brands', async function (req, res, next) {
@@ -220,6 +225,53 @@ authorize(googleServer, access_token).then(userAuthed => {
   //     })
   //   return res.send(productData)
   // })
+
+      // refactoring two functions above to handle getting GSA docs details
+  router.get('/gsa_docslists', async function (req, res, next) {
+let docsListData = await listGSA_DocsListsMap(userAuthed)
+  .then(response => {
+    docsListsArray = response
+    return response
+  })
+  .catch(error => {
+    console.log('Error:', error)
+    res.status(500).json(error)
+  })
+return res.send(docsListData)
+})
+
+router.get('/gsa_docsdata', async function (req, res, next) {
+  if (docsListsArray[0] === 'empty') {
+    docsListsArray = await listGSA_DocsListsMap(userAuthed).catch(error => {
+      console.log('google Error:', error)
+      res.status(500).json(error)
+    })
+  }
+
+  // let docs = req.query.docs.split(',') // refactored to send object with id and sheet_name
+  let docs = [req.query.docs] // because above was creating an array I kept this as an array
+  let myFilter = docs.map((ele, i) => {
+    let el = JSON.parse(ele) // because of above restructuring I descided to parse the string to json here
+    console.log('el',el)
+
+    return docsListsArray.filter(doc => doc.docSheetId === el.docSheetId && doc.doc_sheet_name === el.doc_sheet_name)[0]
+  })
+
+  console.log(`docsListsArray.length: ${docsListsArray.length}`)
+  console.log(`myFilter[0].docSheetId: ${myFilter[0].docSheetId}`)
+
+  let docData = await getAllDocsData(userAuthed, myFilter)
+    .then(response => {
+      docsDataArray = response
+      return response
+    })
+    .catch(error => {
+      console.log('Error:', error)
+      res.status(500).json(error)
+    })
+  return res.send(docData)
+})
+
 })
 
 module.exports = router

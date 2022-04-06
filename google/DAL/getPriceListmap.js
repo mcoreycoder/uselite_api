@@ -4,11 +4,12 @@ const { compare } = require('../helpers')
 async function getPriceListsMap (auth) {
   let listsArray = []
   const sheetInfo = {
-    sheetId: '16bp80BxUOcct7aQY44cfU1WFmpI1BI4Qg5dS-vRNUXI', // 2021 in Development Test > Brands > _GSA_PriceListMap folder
+    sheetId: '1x17QYlhO-PkNoCX7ATP-7zExOTjrlKUoQkjGLi3eXpM', // 2022 in Development Test > Brands > _GSA_PriceListMap folder
+    // sheetId: '16bp80BxUOcct7aQY44cfU1WFmpI1BI4Qg5dS-vRNUXI', // 2021 in Development Test > Brands > _GSA_PriceListMap folder
     // sheetId: '1UA4B3ZyerKkTwMrHX3CpvTTazfSRRjCxKKIwQHc0Z0Y', // 7.15.21 copy of GSAbrands2021
     tabName: 'Brands',
     cellMin: 'A1',
-    cellMax: 'AU7'
+    cellMax: 'AU11'
   }
 
   const mapGSAPriceListsMap = list => {

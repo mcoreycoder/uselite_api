@@ -5,6 +5,9 @@ const getPriceListData = require('./DAL/getPriceListData')
 const getUPC_ListData = require('./DAL/getUPC_ListData')
 const { mapVariantsToProducts, compare } = require('./helpers')
 
+const getGSA_docsMap = require('./DAL/getGSA_docsMap')
+const getGSA_docData = require('./DAL/getGSA_docData')
+
 // const compare = (a, b) => {
 //   if (a < b) {
 //     return -1
@@ -232,6 +235,11 @@ async function listPriceListsMap (auth) {
   return listData
 }
 
+async function listGSA_DocsListsMap (auth) {
+  let listData = await getGSA_docsMap(auth)
+  return listData
+}
+
 async function getProductData (auth, listsData) {
   let productArray = []
   for (i = 0; i < listsData.length; i++) {
@@ -269,6 +277,20 @@ async function getAllProductsData (auth, listsData) {
   return mapVariantsToProducts(productArray, productVariantArray)
 }
 
+async function getAllDocsData (auth, listsData) {
+  console.log(`listsData[0].doc_name: ${listsData[0].doc_name}`)
+  let docsArray = []
+  for (i = 0; i < listsData.length; i++) {
+    let foundData = await getGSA_docData(auth, listsData[i])
+    docsArray = [
+      ...docsArray,
+      ...(foundData)
+    ]
+  }
+
+  return docsArray
+}
+
 // async function getProductVariantData (auth, listsData) {
 //   let productVariantArray = []
 //   for (i = 0; i < listsData.length; i++) {
@@ -290,6 +312,8 @@ module.exports.listArcteryxVariants = listArcteryxVariants
 // new formatting of functions
 module.exports.listGSAPriceListsMap = listGSAPriceListsMap
 module.exports.listPriceListsMap = listPriceListsMap
+module.exports.listGSA_DocsListsMap = listGSA_DocsListsMap
 module.exports.getProductData = getProductData
 module.exports.getAllProductsData = getAllProductsData
+module.exports.getAllDocsData = getAllDocsData
 // module.exports.getProductVariantData = getProductVariantData
